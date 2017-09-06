@@ -110,9 +110,9 @@ I ran Yara rules for possible code overlaps from Lazarus
 against VirusTotal - there were a very large number of potentially related
 samples.
 The very first sample to match was 
-[1db61ae18c85d6aca77a4a3800af07b4](https://virustotal.com/%23/file/2dc4d045b8a0c66dc003a0c92c8305c53b7fc8f7b7347befdf59d4b16e26135a/details).
+[1db61ae18c85d6aca77a4a3800af07b4](https://virustotal.com/en/file/2dc4d045b8a0c66dc003a0c92c8305c53b7fc8f7b7347befdf59d4b16e26135a/analysis/).
 
-It's a worm has been spreading since 2009via SMB brute-forcing.
+It's a worm has been spreading since 2009 via SMB brute-forcing.
 This worm might be written by Lazarus.
 Or it might just share code from a common base, library or coincidence.
 Further analysis would be required to confirm which is the case.
