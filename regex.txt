@@ -1,0 +1,29 @@
+#
+# This file sets patterns to look for in files
+# You need to include the byte boundaries (ie an x after every two hex characters)
+#
+# Machine code function prologs
+# Start of function in VC++, Borland
+((55x8b)[a-f0-9x]{42})
+# Start of function in MingW
+((55x89xe5)[a-f0-9x]{39})
+# GCC Linux
+((55x48x89xe5)[a-f0-9x]{36})
+# 0002 - Common start of a function in .net. Disabled as too common
+#
+# Scripts
+# ();
+#((28x29x3b)[a-f0-9x]{39})
+# function
+#((66x75x6Ex63x74x69x6Fx6E)[a-f0-9x]{72})
+#
+# Infrastructure and other items
+# 3A2F2F - ://
+#((3ax2fx2f)[a-f0-9x]{87})
+# 433A5C / 443A5C / 453A5C - C:\ D:\ E:\
+#((43x3ax5c)[a-f0-9x]{87})
+#((44x3ax5c)[a-f0-9x]{87})
+#((45x3ax5c)[a-f0-9x]{87})
+
+
+
