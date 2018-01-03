@@ -112,7 +112,7 @@ def generateFuzzyHash(filename):
         return
 
 
-def generateYara(filename, singleFile, tight=True, max_lines=30, min_patterns=0):
+def generateYara(filename, singleFile, tight=True, max_lines=3000, min_patterns=0):
     global seen_patterns
     global percent_tight_match
 
@@ -141,27 +141,50 @@ def generateYara(filename, singleFile, tight=True, max_lines=30, min_patterns=0)
                 print '}'
                 print '\r\n\r\n'
 
+    # if not tight:
+    #     # Dont print the same rule twice
+    #     for s in byte_patterns.iteritems():
+
+    #         if s in seen_patterns or singleFile:
+    #             if s not in seen_patterns:
+    #                 seen_patterns[s] = 1
+    #             seen_patterns[s] = seen_patterns[s] + 1
+    #             if seen_patterns[s] == 2:
+
+    #                 fname = filename.replace('/', '_').replace('.', '')
+    #                 print 'rule ' + fname + '_hunt_' + s[0] + ' {'
+    #                 print ' // File: ' + fname
+    #                 print ' strings:'
+    #                 print '  $a_1 = { ' + s[0] + ' }'
+    #                 print ' condition:'
+    #                 print '     all of them'
+    #                 print '}'
+    #                 print '\r\n\r\n'
+    #         else:
+    #             if s not in seen_patterns:
+    #                 seen_patterns[s] = 1
+
     if not tight:
         # Dont print the same rule twice
-        for s in byte_patterns.iteritems():
+        if str(byte_patterns) not in seen_patterns:
+            seen_patterns[str(byte_patterns)] = 1
+            # If we have no, or only one pattern, it probably won't be a tight
+            # enough signature
+            if len(byte_patterns) > min_patterns:
+                print 'rule tight_' + filename.replace('/', '_').replace('.', '') + ' {'
+                print ' strings:'
 
-            if s in seen_patterns or singleFile:
-                if s not in seen_patterns:
-                    seen_patterns[s] = 1
-                seen_patterns[s] = seen_patterns[s] + 1
-                if seen_patterns[s] == 2:
+                count = 1
+                for s in byte_patterns:
+                    if count < max_lines:
+                        count = count + 1
+                        print '  $a_' + str(count) + ' = { ' + s + ' }'
 
-                    print 'rule hunt_' + s[0] + ' {'
-                    print ' // File: ' + filename.replace('/', '_').replace('.', '')
-                    print ' strings:'
-                    print '  $a_1 = { ' + s[0] + ' }'
-                    print ' condition:'
-                    print '     all of them'
-                    print '}'
-                    print '\r\n\r\n'
-            else:
-                if s not in seen_patterns:
-                    seen_patterns[s] = 1
+                print ' condition:'
+                tight_decimal = int(round(count * percent_tight_match))
+                print '  any of them'
+                print '}'
+                print '\r\n\r\n'        
 
 
 def fuzzyHash(filename, tight=True):
