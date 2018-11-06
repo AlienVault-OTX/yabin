@@ -11,7 +11,7 @@ A whitelist taken from 100 Gb of non-malicious software is used to ignore common
 Yabin is a *prototype* testing out an approach - rather than intended for production use.
 
 # Running Yabin
-A whitelist is included in the reporistory, but it's recommended you download the larger one (140Mb) from
+A whitelist is included in the repository, but it's recommended you download the larger one (140Mb) from
 [here](https://drive.google.com/file/d/0B8YfXb5yEBbZYjZ0VlhucUpHZlk/view?usp=sharing) and replace db.db.
  
 More detailed information is below, but the help command provides an overview: 
