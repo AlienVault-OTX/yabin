@@ -139,3 +139,13 @@ cython_debug/
 
 # PyCharm
 .idea/
+
+# VSCode
+.vscode/
+
+# Database file
+db.db
+
+# Directories with samples
+clean/
+malware/
