@@ -38,6 +38,7 @@ def parseArguments():
     parser.add_argument('-f', '--fuzzyHash', help='Generate a fuzzy hash for the file', required=False)
     parser.add_argument('-m', '--malwareAdd', help='Add malware file or folder to malware database to be searched', required=False)
     parser.add_argument('-s', '--malwareSearch', help='Search for samples related to this file', required=False)
+    parser.add_argument('-mf', '--malwareFamily', help='Name of malware family to be added', required=False, action='store', type=str, const="no_family", nargs='?')
 
     args = vars(parser.parse_args())
 
@@ -52,7 +53,7 @@ def parseArguments():
     if args['fuzzyHash']:
         fuzzyHash(args['fuzzyHash'])
     if args['malwareAdd']:
-        addMalware(args['malwareAdd'])
+        addMalware(args['malwareAdd'], args['malwareFamily'])
     if args['malwareSearch']:
         malwareSearch(args['malwareSearch'])
 
@@ -63,16 +64,15 @@ def getBytePatterns(filename, ignore_whitelist=False):
     hex = binascii.hexlify(content).decode('utf-8')
     # Add - every two characters so we match -xx- not x-x
     hex = 'x'.join([hex[i:i + 2] for i in range(0, len(hex), 2)])
-    seen = {}
-    for match in re.findall(prolog_regex, hex):
+    seen = {} # stores values {"opcode_sequence": float(entropy)}
+    for match in re.findall(prolog_regex, hex): # prolog_regex here is in form of OR statement (<pattern-1>|<pattern-2>|<pattern-3>|...)
         bit = match[0].replace('x', '')
         if bit not in seen:
             if ignore_whitelist or not whitelisted(bit):
                 # Only include high entropy patterns, ie) avoid 0000000 or
                 # 1111111 etc.
-                # if entropy(bit) > 0:
-                seen[bit] = entropy(bit)
-
+                if entropy(bit) > 0:
+                    seen[bit] = entropy(bit)
     return seen
 
 
@@ -112,56 +112,39 @@ def generateFuzzyHash(filename):
         return
 
 
-def generateYara(filename, singleFile, tight=True, max_lines=3000, min_patterns=0):
+def generateYara(filename, singleFile, tight=True, max_lines=75, min_patterns=0):
     global seen_patterns
     global percent_tight_match
 
     # Print out those that aren't in the whitelist
     byte_patterns = getBytePatterns(filename)
 
-    if tight:
+    def form_rule(tight=True):
         # Dont print the same rule twice
         if str(byte_patterns) not in seen_patterns:
             seen_patterns[str(byte_patterns)] = 1
             # If we have no, or only one pattern, it probably won't be a tight
             # enough signature
-            if len(byte_patterns) > min_patterns:
-                print('rule tight_' + filename.replace('/', '_').replace('.', '') + ' {')
+            if len(byte_patterns.keys()) > min_patterns:
+                print('rule tight_' + os.path.basename(filename).replace('/', '_').replace('.', '') + ' {')
                 print(' strings:')
 
                 count = 1
                 for s in byte_patterns:
-                    if count < max_lines:
-                        count += 1
+                    if count < max_lines and entropy(s) > 3.25: # added entropy here
                         print('  $a_' + str(count) + ' = { ' + s + ' }')
+                        count += 1
 
                 print(' condition:')
-                tight_decimal = int(round(count * percent_tight_match))
-                print('  ' + str(tight_decimal) + ' of them')
+                tight_decimal = int(math.floor(count * percent_tight_match))
+                if tight:
+                    print('  ' + str(tight_decimal) + ' of them')
+                else:
+                    print('  any of them')
                 print('}')
                 print('\r\n\r\n')
-
-    if not tight:
-        # Dont print the same rule twice
-        if str(byte_patterns) not in seen_patterns:
-            seen_patterns[str(byte_patterns)] = 1
-            # If we have no, or only one pattern, it probably won't be a tight
-            # enough signature
-            if len(byte_patterns) > min_patterns:
-                print('rule tight_' + filename.replace('/', '_').replace('.', '') + ' {')
-                print(' strings:')
-
-                count = 1
-                for s in byte_patterns:
-                    if count < max_lines:
-                        count += 1
-                        print('  $a_' + str(count) + ' = { ' + s + ' }')
-
-                print(' condition:')
-                tight_decimal = int(round(count * percent_tight_match))
-                print('  any of them')
-                print('}')
-                print('\r\n\r\n')
+    
+    form_rule(tight=tight)
 
 
 def fuzzyHash(filename, tight=True):
@@ -194,20 +177,23 @@ def whitelisted(pattern):
 
 def addToWhitelist(folder):
     # Minimum number of samples a pattern must be in
-    min_seen = 1
+    min_seen = 0
     count = 0
 
     # If we dont care how often it's been seen, just insert it
     if min_seen == 0:
         for f in os.listdir(folder):
             count = count + 1
-            print('Processed ' + str(count) + ' file(s)')
-            print('Processing ' + f)
-            new_seen = getBytePatterns('./' + folder + '/' + f, True)
-            for pattern in new_seen:
-                db.execute(
-                    'insert or ignore into whitelist (pattern) values ("' + pattern + '")')
-            conn.commit()
+            if int(os.path.getsize('./' + folder + '/' + f)) < 35000000: #bytes
+                print('Processed ' + str(count) + ' file(s)')
+                print('Processing ' + f)
+                new_seen = getBytePatterns('./' + folder + '/' + f, True)
+                for pattern in new_seen:
+                    db.execute(
+                        'insert or ignore into whitelist (pattern) values ("' + pattern + '")') # will not insert similar patterns, ok
+                conn.commit()
+            else:
+                continue
 
     # Otherwise actually keep track of how many samples a pattern has been in
     else:
@@ -215,13 +201,16 @@ def addToWhitelist(folder):
         # Built a count of how often every pattern was seen
         for f in os.listdir(folder):
             count = count + 1
-            print('Processed ' + str(count) + ' file(s)')
-            new_seen = getBytePatterns('./' + folder + '/' + f, True)
-            for pattern in new_seen:
-                if pattern not in seen:
-                    seen[pattern] = 1
-                else:
-                    seen[pattern] = seen[pattern] + 1
+            if int(os.path.getsize('./' + folder + '/' + f)) < 35000000: #bytes
+                print('Processed ' + str(count) + ' file(s)')
+                new_seen = getBytePatterns('./' + folder + '/' + f, True)
+                for pattern in new_seen:
+                    if pattern not in seen:
+                        seen[pattern] = 1
+                    else:
+                        seen[pattern] = seen[pattern] + 1
+            else:
+                continue
 
         total = 0
         # Insert every pattern seen > x times into the whtelist
@@ -233,13 +222,13 @@ def addToWhitelist(folder):
     conn.commit()
 
 
-def generateSample(filename):
+def generateSample(filename, family):
     md5 = hashlib.md5(open(filename, 'rb').read()).hexdigest()
     # Print out those that aren't in the whitelist
     byte_patterns = getBytePatterns(filename)
     for pattern in byte_patterns:
-        db.execute('insert or ignore into malware (pattern, md5) values ("' +
-                   pattern + '", "' + md5 + '")')
+        db.execute('insert or ignore into malware (pattern, md5, family) values ("' +
+                    pattern + '", "' + md5 + '", "' + family + '")')
 
 
 def deleteDatabase():
@@ -247,19 +236,18 @@ def deleteDatabase():
     db.execute('DROP TABLE IF EXISTS malware')
     db.execute('CREATE TABLE whitelist (pattern text)')
     db.execute('CREATE UNIQUE INDEX whitelist_index on whitelist (pattern)')
-    db.execute('CREATE TABLE malware (pattern text, md5 text)')
-    db.execute('CREATE UNIQUE INDEX malware_index on malware (pattern, md5)')
-
+    db.execute('CREATE TABLE malware (pattern text, md5 text, family text)')
+    db.execute('CREATE UNIQUE INDEX malware_index on malware (pattern, md5, family)')
 
 # Add a file or folder to malware db
-def addMalware(filename):
+def addMalware(filename, family):
     print('Adding samples to malware database')
     if os.path.isdir(filename):
         for f in os.listdir(filename):
-            generateSample('./' + filename + '/' + f)
+            generateSample('./' + filename + '/' + f, family)
     else:
         if os.path.isfile(filename):
-            generateSample(filename)
+            generateSample(filename, family)
     conn.commit()
     print('Added samples')
 
