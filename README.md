@@ -17,7 +17,7 @@ A whitelist is included in the repository, but it's recommended you download the
 More detailed information is below, but the help command provides an overview: 
  
 ```
- python yabin.py --help
+ python2.7 yabin.py --help
  usage: yabin.py [-h] [-y YARA] [-yh YARAHUNT] [-d] [-w ADDTOWHITELIST]
                  [-f FUZZYHASH] [-m MALWAREADD] [-s MALWARESEARCH]
  
@@ -65,6 +65,7 @@ strings:
 condition:
     3 of them
 }
+
 ```
 
 Which can be used to then identify similar samples of
@@ -82,7 +83,7 @@ Perhaps you want to hunt for suspicious binaries that exist on your network, and
 I generated a hunt yara rule for a sample of WannaCry like so:
 
 ```
-python yabin.py -yh 3e6de9e2baacf930949647c399818e7a2caea2626df6a468407854aaa515eed9 > wanna.rule
+python2.7 yabin.py -yh 3e6de9e2baacf930949647c399818e7a2caea2626df6a468407854aaa515eed9 > wanna.rule
 
 rule hunt_558b6c241056576a208b45008d750424 {
     // File: 3e6de9e2baacf930949647c399818e7a2caea2626df6a468407854aaa515eed9
@@ -91,6 +92,12 @@ rule hunt_558b6c241056576a208b45008d750424 {
     condition:
         all of them
 }
+
+sudo apt update
+sudo apt install yara
+
+yara wanna.rule /folder/
+
 ```
 
 Running these against a database of malware samples shows a match
