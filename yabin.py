@@ -1,11 +1,7 @@
 '''
-
  YaraBin (Yara + Binary)
-
  This generates Yara rules from function prologs, for matching and hunting
-
  Questions of comments? Hit me up @chrisdoman
-
 '''
 
 import binascii
@@ -126,7 +122,7 @@ def generateYara(filename, singleFile, tight=True, max_lines=3000, min_patterns=
             # If we have no, or only one pattern, it probably won't be a tight
             # enough signature
             if len(byte_patterns) > min_patterns:
-                print 'rule tight_' + filename.replace('/', '_').replace('.', '') + ' {'
+                print 'rule tight_' + filename.replace('/', '_').replace('.', '_').replace(',', '_').replace('-', '_') + ' {'
                 print ' strings:'
 
                 count = 1
@@ -171,7 +167,7 @@ def generateYara(filename, singleFile, tight=True, max_lines=3000, min_patterns=
             # If we have no, or only one pattern, it probably won't be a tight
             # enough signature
             if len(byte_patterns) > min_patterns:
-                print 'rule tight_' + filename.replace('/', '_').replace('.', '') + ' {'
+                print 'rule tight_' + filename.replace('/', '_').replace('.', '_').replace(',', '_').replace('-', '_') + ' {'
                 print ' strings:'
 
                 count = 1
