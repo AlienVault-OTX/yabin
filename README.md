@@ -65,6 +65,7 @@ strings:
 condition:
     3 of them
 }
+
 ```
 
 Which can be used to then identify similar samples of
@@ -91,6 +92,12 @@ rule hunt_558b6c241056576a208b45008d750424 {
     condition:
         all of them
 }
+
+sudo apt update
+sudo apt install yara
+
+yara wanna.rule /folder/
+
 ```
 
 Running these against a database of malware samples shows a match
